@@ -1,5 +1,6 @@
 [versions]
 agp = "8.7.3"
+coilCompose = "3.0.4"
 kotlin = "2.0.21"
 coreKtx = "1.15.0"
 junit = "4.13.2"
@@ -11,7 +12,8 @@ composeBom = "2024.12.01"
 appcompat = "1.7.0"
 material = "1.12.0"
 kotlinxSerializationJson = "1.5.0"
-kotlinxCoroutinesAndroid = "1.8.1"
+kotlinxCoroutinesAndroid = "1.9.0"
+navigationCompose = "2.8.5"
 okhttp = "4.12.0"
 loggingInterceptor = "4.9.3"
 retrofit = "2.11.0"
@@ -21,6 +23,9 @@ kspPlugin = "2.0.21-1.0.25"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
+coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coilCompose" }
 converter-kotlinx-serialization = { module = "com.squareup.retrofit2:converter-kotlinx-serialization", version.ref = "retrofit" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 koin-android = { module = "io.insert-koin:koin-androidx-compose-navigation" }

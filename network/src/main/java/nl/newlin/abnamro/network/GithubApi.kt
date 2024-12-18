@@ -55,7 +55,7 @@ class GithubApiImpl: GithubApi {
 }
 
 internal interface GithubRetrofitApi {
-    @Headers("Authorization: token: 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")
+    @Headers("Authorization: Bearer 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")
     @GET("users/{user}/repos")
     suspend fun listRepos(@Path("user") user: String?, @Query("page") page: Int, @Query("per_page") perPage: Int): List<Repository>
 }

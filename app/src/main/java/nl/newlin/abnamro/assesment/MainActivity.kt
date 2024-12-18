@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,18 +35,37 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navOptions
+import androidx.navigation.toRoute
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import nl.newlin.abnamro.assesment.ui.theme.AbnAmroAssesmentTheme
 import nl.newlin.abnamro.network.DataResource
 import nl.newlin.abnamro.network.GitHubRepository
@@ -133,9 +154,17 @@ fun RepoCardPreview() {
 
 @Composable
 fun RepoCard(name: String, avatarImageUrl: String?, visibility: RepoVisibility, private: Boolean, modifier: Modifier = Modifier) {
-    Row(Modifier.height(IntrinsicSize.Min).padding(horizontal = 16.dp).fillMaxWidth().then(modifier)) {
+    Row(
+        Modifier
+            .height(IntrinsicSize.Min)
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .then(modifier)) {
         Spacer(Modifier.width(10.dp))
-        Box(Modifier.width(40.dp).fillMaxHeight()) {
+        Box(
+            Modifier
+                .width(40.dp)
+                .fillMaxHeight()) {
             if (avatarImageUrl != null) {
                 AsyncImage(
                     model = avatarImageUrl,
@@ -158,19 +187,131 @@ fun RepoCard(name: String, avatarImageUrl: String?, visibility: RepoVisibility, 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainNavigation(navController: NavHostController) {
+
+    var currentScreen: Screen by remember { mutableStateOf(Screen.Home) }
+    var pageTitle by remember { mutableStateOf("Repos") }
+    LaunchedEffect(currentScreen) {
+
+        navController.navigate(currentScreen, navOptions {
+                if (currentScreen is Screen.Home) popUpTo<Screen.Home>()
+            })
+
+        pageTitle = when(currentScreen) {
+            is Screen.Home -> "Repos"
+            is Screen.Details -> (currentScreen as Screen.Details).name
+        }
+    }
+
     AbnAmroAssesmentTheme {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Column(Modifier.padding(innerPadding)) {
-                Greeting()
-            }
+        Scaffold(modifier = Modifier.fillMaxSize(),
+            topBar = {
+                TopAppBar(title = {
+                    Text(pageTitle)
+                },
+                    navigationIcon = {
+                        if (currentScreen is Screen.Details) {
+                            IconButton(onClick = {
+                               currentScreen = Screen.Home
+                            }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Localized description"
+                                )
+                            }
+                        }
+                    })
+            }) { innerPadding ->
+                NavHost(navController, startDestination = Screen.Home, Modifier.padding(innerPadding)) {
+                    composable<Screen.Home> { RepositoriesList(onNavigation = { screen ->
+                        currentScreen = screen
+                    }) }
+                    composable<Screen.Details> { route ->
+                        val details = route.toRoute<Screen.Details>()
+                        RepositoryDetails(details) }
+                }
+
+
         }
     }
 }
 
+@Preview(showBackground = true)
 @Composable
-fun Greeting(vm: MainViewModel = koinViewModel(), modifier: Modifier = Modifier) {
+fun RepositoryDetailsPreview() {
+    RepositoryDetails(Screen.Details(
+        name = "Example repo",
+        fullName = "Example/example_repro",
+        ownerAvatarImageUrl = null,
+        visibility = RepoVisibility.Public,
+        private = false,
+        description = "Just a exmaple repo",
+        htmlUrl = "https://something"
+    ))
+}
+
+@Composable
+fun RepositoryDetails(details: Screen.Details) {
+    Column(Modifier.padding(16.dp).fillMaxWidth()) {
+        Box(
+            Modifier
+                .align(Alignment.CenterHorizontally)
+                .size(100.dp)
+            ) {
+            if (details.ownerAvatarImageUrl != null) {
+                AsyncImage(
+                    model = details.ownerAvatarImageUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                )
+            }
+        }
+        Text(details.fullName)
+        details.description?.let { description ->
+            Text(description, Modifier.padding(top = 16.dp))
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Text(when(details.visibility){
+            RepoVisibility.Public -> "Public"
+            RepoVisibility.Private -> "Private"
+        })
+        Text("Is private: " + if (details.private) "Yes" else "No")
+
+        val uriHandler = LocalUriHandler.current
+
+        Button(modifier = Modifier.padding(top = 16.dp),
+            shape = RectangleShape,
+            onClick = {
+                uriHandler.openUri(details.htmlUrl)
+        }) {
+            Text("Open details")
+        }
+    }
+
+}
+
+sealed class Screen {
+    @Serializable
+    data object Home: Screen()
+
+    @Serializable
+    data class Details(
+        val name: String,
+        val fullName: String,
+        val description: String?,
+        val ownerAvatarImageUrl: String?,
+        val visibility: RepoVisibility,
+        val private: Boolean,
+        val htmlUrl: String
+    ): Screen()
+}
+
+@Composable
+fun RepositoriesList(onNavigation: (Screen) -> Unit, vm: MainViewModel = koinViewModel(), modifier: Modifier = Modifier) {
     LaunchedEffect(vm) {
         vm.fetch()
     }
@@ -187,7 +328,24 @@ fun Greeting(vm: MainViewModel = koinViewModel(), modifier: Modifier = Modifier)
                        avatarImageUrl = item.avatarImageUrl,
                        visibility = item.visibility,
                        private = item.private,
-                       modifier = if (index%2==0) Modifier.background(colorResource(R.color.accent)) else Modifier
+                       modifier = Modifier
+                           .clickable {
+                               onNavigation(
+                                   Screen.Details(
+                                       name = item.name,
+                                       fullName = item.fullName,
+                                       ownerAvatarImageUrl = item.avatarImageUrl,
+                                       visibility = item.visibility,
+                                       private = item.private,
+                                       description = item.description,
+                                       htmlUrl = item.htmlUrl
+                                   )
+                               )
+                           }
+                           .then(
+                               if (index % 2 == 0) Modifier
+                                   .background(colorResource(R.color.accent)) else Modifier
+                           )
                    )
 
                    if (index == currentState.data.lastIndex) {
