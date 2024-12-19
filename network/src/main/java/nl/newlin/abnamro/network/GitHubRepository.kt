@@ -1,6 +1,7 @@
 package nl.newlin.abnamro.network
 
 data class GitHubRepository(
+    val id: Long,
     val name: String,
     val fullName: String,
     val private: Boolean,

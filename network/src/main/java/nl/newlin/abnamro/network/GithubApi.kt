@@ -42,6 +42,7 @@ class GithubApiImpl: GithubApi {
 
         result.map { 
             GitHubRepository(
+                id = it.id,
                 name = it.name,
                 fullName = it.fullName,
                 private = it.private,
