@@ -24,6 +24,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -54,7 +55,6 @@ import kotlinx.serialization.Serializable
 import nl.newlin.abnamro.assesment.ui.theme.AbnAmroAssesmentTheme
 import nl.newlin.abnamro.data.ReposDatabase
 import nl.newlin.abnamro.data.ReposDatabaseImpl
-import nl.newlin.abnamro.network.DataResource
 import nl.newlin.abnamro.network.GithubApi
 import nl.newlin.abnamro.network.GithubApiImpl
 import nl.newlin.abnamro.network.RepoVisibility
@@ -251,18 +251,53 @@ sealed class Screen {
 }
 
 @Composable
-fun RepositoriesList(onNavigation: (Screen) -> Unit, vm: MainViewModel = koinViewModel(), modifier: Modifier = Modifier) {
-    LaunchedEffect(vm) {
-        vm.fetch()
+fun NetworkStatusChecker(isNetworkAvailable: Boolean) {
+    if (!isNetworkAvailable) {
+        Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.error).padding(16.dp)) {
+            Text(
+                "No Internet Connection",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onError
+            )
+        }
     }
+}
+
+@Composable
+fun RepositoriesList(onNavigation: (Screen) -> Unit, vm: MainViewModel = koinViewModel()) = Column {
+    val isNetworkAvailable by vm.isNetworkAvailable.collectAsState()
     val repositories by vm.datasource.repos.collectAsState(emptyList())
     val syncing by vm.datasource.isSyncing.collectAsState(false)
 
-   when (syncing) {
-       true -> Box(Modifier.fillMaxSize()) {
+    NetworkStatusChecker(isNetworkAvailable)
+    LaunchedEffect(vm) {
+        if (isNetworkAvailable) {
+            vm.fetch()
+        } else {
+            vm.loadCachedData()
+        }
+    }
+
+    LaunchedEffect(isNetworkAvailable) {
+        if (isNetworkAvailable && repositories.isEmpty()) {
+            vm.fetch()
+        }
+    }
+
+   when  {
+       syncing -> Box(Modifier.fillMaxSize()) {
            CircularProgressIndicator(Modifier.align(Alignment.Center))
        }
-       false -> {
+       repositories.isEmpty() && !isNetworkAvailable -> {
+           Box(Modifier.fillMaxSize()) {
+               Text(
+                   "Please go online to fetch the GitHub repositories",
+                   Modifier.align(Alignment.Center)
+               )
+           }
+       }
+       else -> {
+
            LazyColumn {
                itemsIndexed(repositories) { index, item ->
                    RepoCard(
@@ -289,10 +324,6 @@ fun RepositoriesList(onNavigation: (Screen) -> Unit, vm: MainViewModel = koinVie
                                    .background(colorResource(R.color.accent)) else Modifier
                            )
                    )
-
-                   /*if (index == repositories.lastIndex) {
-                       vm.loadMore()
-                   }*/
                }
            }
        }

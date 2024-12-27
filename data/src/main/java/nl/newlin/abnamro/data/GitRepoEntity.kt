@@ -1,10 +1,9 @@
 package nl.newlin.abnamro.data
-import androidx.room.ColumnInfo
 import androidx.room.Entity;
 import androidx.room.PrimaryKey
 
 @Entity
-data class GitRepo(
+data class GitRepoEntity(
     @PrimaryKey val uid: Long,
     val name: String,
     val fullName: String,

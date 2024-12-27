@@ -1,10 +1,9 @@
 package nl.newlin.abnamro.assesment.data
 
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
-import nl.newlin.abnamro.data.GitRepo
+import nl.newlin.abnamro.data.GitRepoEntity
 import nl.newlin.abnamro.data.ReposDatabase
 import nl.newlin.abnamro.network.DataResource
 import nl.newlin.abnamro.network.GitHubRepository
@@ -22,6 +21,8 @@ class GithubRepoDatasource(val api: GithubApi, val database: ReposDatabase) {
     val isSyncing = _isSyncing.asSharedFlow()
 
     suspend fun syncRepositories() {
+        if (_isSyncing.value) return
+
         _isSyncing.update { true }
         fetchData()
     }
@@ -47,7 +48,7 @@ class GithubRepoDatasource(val api: GithubApi, val database: ReposDatabase) {
     private suspend fun storeResult(allRepos: List<GitHubRepository>) {
         database.deleteAll()
         database.saveAll(allRepos.map {
-            GitRepo(
+            GitRepoEntity(
                 uid = it.id,
                 name = it.name,
                 fullName = it.fullName,

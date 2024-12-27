@@ -7,15 +7,15 @@ import androidx.room.Query
 
 @Dao
 interface GitReposDao {
-    @Query("SELECT * FROM GitRepo")
-    fun getAll(): List<GitRepo>
+    @Query("SELECT * FROM GitRepoEntity")
+    fun getAll(): List<GitRepoEntity>
 
     @Insert
-    fun insertAll(vararg repos: GitRepo)
+    fun insertAll(vararg repos: GitRepoEntity)
 
     @Delete
-    fun delete(repo: GitRepo)
+    fun delete(repo: GitRepoEntity)
 
-    @Query("DELETE FROM Gitrepo")
+    @Query("DELETE FROM GitRepoEntity")
     fun deleteAll()
 }
